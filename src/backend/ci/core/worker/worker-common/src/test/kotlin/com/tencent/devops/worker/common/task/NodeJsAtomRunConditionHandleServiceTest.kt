@@ -7,6 +7,7 @@ import com.tencent.devops.store.pojo.common.enums.LanguageEnum
 import com.tencent.devops.store.pojo.common.enums.StoreTypeEnum
 import com.tencent.devops.worker.common.service.impl.NodeJsAtomRunConditionHandleServiceImpl
 import com.tencent.devops.worker.common.task.market.AtomRunConditionFactory
+import io.mockk.spyk
 import org.apache.commons.lang3.reflect.MethodUtils
 import org.junit.jupiter.api.Test
 import java.io.File
