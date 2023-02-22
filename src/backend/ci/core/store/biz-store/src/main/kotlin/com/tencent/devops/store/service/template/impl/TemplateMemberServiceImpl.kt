@@ -46,10 +46,6 @@ class TemplateMemberServiceImpl : StoreMemberServiceImpl() {
 
     private val logger = LoggerFactory.getLogger(TemplateMemberServiceImpl::class.java)
 
-    override fun getStoreName(storeCode: String): String {
-        return marketTemplateDao.getLatestTemplateByCode(dslContext, storeCode)?.templateName ?: ""
-    }
-
     /**
      * 添加模板成员
      */
@@ -111,5 +107,9 @@ class TemplateMemberServiceImpl : StoreMemberServiceImpl() {
             storeType = storeType,
             checkPermissionFlag = checkPermissionFlag
         )
+    }
+
+    override fun getStoreName(storeCode: String): String {
+        return marketTemplateDao.getLatestTemplateByCode(dslContext, storeCode)?.templateName ?: ""
     }
 }
