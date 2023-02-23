@@ -28,21 +28,27 @@
 package com.tencent.devops.store.service.template.impl
 
 import com.tencent.devops.common.api.constant.CommonMessageCode
+import com.tencent.devops.common.api.constant.DEVOPS
 import com.tencent.devops.common.api.pojo.Result
 import com.tencent.devops.common.service.utils.MessageCodeUtil
 import com.tencent.devops.store.dao.template.MarketTemplateDao
+import com.tencent.devops.store.pojo.common.STORE_MEMBER_ADD_NOTIFY_TEMPLATE
 import com.tencent.devops.store.pojo.common.StoreMemberReq
 import com.tencent.devops.store.pojo.common.enums.StoreTypeEnum
 import com.tencent.devops.store.service.common.impl.StoreMemberServiceImpl
+import org.jooq.impl.DSL
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.util.concurrent.Executors
 
 @Service("templateMemberService")
 class TemplateMemberServiceImpl : StoreMemberServiceImpl() {
 
     @Autowired
     private lateinit var marketTemplateDao: MarketTemplateDao
+
+    private val executorService = Executors.newFixedThreadPool(5)
 
     private val logger = LoggerFactory.getLogger(TemplateMemberServiceImpl::class.java)
 
@@ -69,15 +75,35 @@ class TemplateMemberServiceImpl : StoreMemberServiceImpl() {
         ) {
             return MessageCodeUtil.generateResponseDataObject(CommonMessageCode.PERMISSION_DENIED)
         }
-        return super.add(
-            userId = userId,
-            storeMemberReq = storeMemberReq,
-            storeType = storeType,
-            collaborationFlag = collaborationFlag,
-            sendNotify = sendNotify,
-            checkPermissionFlag = checkPermissionFlag,
-            testProjectCode = testProjectCode
-        )
+        val storeCode = storeMemberReq.storeCode
+        val type = storeMemberReq.type.type.toByte()
+        val receivers = mutableSetOf<String>()
+        for (item in storeMemberReq.member) {
+            if (storeMemberDao.isStoreMember(dslContext, item, templateCode, storeType.type.toByte())) {
+                continue
+            }
+            dslContext.transaction { t ->
+                val context = DSL.using(t)
+                logger.info("context, userId, storeCode, item, type, storeType.type.toByte()$context|$userId|$templateCode|$item|$type${storeType.type.toByte()}")
+                storeMemberDao.addStoreMember(context, userId, templateCode, item, type, storeType.type.toByte())
+                logger.info("addTemplateMember success")
+            }
+            receivers.add(item)
+        }
+        if (sendNotify) {
+            logger.info("into sendNotify ")
+            executorService.submit<Result<Boolean>> {
+                val bodyParams = mapOf("storeAdmin" to userId, "storeName" to getStoreName(storeCode))
+                logger.info("bodyParams$bodyParams")
+                storeNotifyService.sendNotifyMessage(
+                    templateCode = STORE_MEMBER_ADD_NOTIFY_TEMPLATE + "_$storeType",
+                    sender = DEVOPS,
+                    receivers = receivers,
+                    bodyParams = bodyParams
+                )
+            }
+        }
+        return Result(true)
     }
 
     /**

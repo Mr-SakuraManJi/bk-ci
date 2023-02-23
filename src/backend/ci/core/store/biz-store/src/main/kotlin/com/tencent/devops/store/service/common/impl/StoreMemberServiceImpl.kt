@@ -286,6 +286,7 @@ abstract class StoreMemberServiceImpl : StoreMemberService {
             dslContext.transaction { t ->
                 val context = DSL.using(t)
                 storeMemberDao.delete(context, id)
+                logger.info("deleteMember success")
                 // 删除成员对应的调试项目
                 storeProjectRelDao.deleteUserStoreTestProject(
                     dslContext = context,
@@ -295,6 +296,7 @@ abstract class StoreMemberServiceImpl : StoreMemberService {
                     storeType = storeType
                 )
             }
+            logger.info("executorService.submit<Result<Boolean>>")
             executorService.submit<Result<Boolean>> {
                 val receivers = mutableSetOf(record.username)
                 val bodyParams = mapOf("storeAdmin" to userId, "storeName" to getStoreName(storeCode))
