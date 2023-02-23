@@ -206,9 +206,7 @@ abstract class StoreMemberServiceImpl : StoreMemberService {
             }
             dslContext.transaction { t ->
                 val context = DSL.using(t)
-                logger.info("context, userId, storeCode, item, type, storeType.type.toByte()$context|$userId|$storeCode|$item|$type${storeType.type.toByte()}")
                 storeMemberDao.addStoreMember(context, userId, storeCode, item, type, storeType.type.toByte())
-                logger.info("addStoreMember success")
                 if (null != testProjectCode) {
                     storeProjectRelDao.updateUserStoreTestProject(
                         dslContext = context,
@@ -219,7 +217,6 @@ abstract class StoreMemberServiceImpl : StoreMemberService {
                         storeProjectType = StoreProjectTypeEnum.TEST
                     )
                 } else if (null != collaborationFlag && !collaborationFlag) {
-                    logger.info("null != testProjectCode$testProjectCode")
                     // 协作申请方式，添加成员时无需再添加调试项目
                     storeProjectRelDao.addStoreProjectRel(
                         dslContext = context,
@@ -234,16 +231,13 @@ abstract class StoreMemberServiceImpl : StoreMemberService {
                         type = StoreProjectTypeEnum.TEST.type.toByte(),
                         storeType = storeType.type.toByte()
                     )
-                    logger.info("addStoreProjectRel success")
                 }
             }
             receivers.add(item)
         }
         if (sendNotify) {
-            logger.info("into sendNotify ")
             executorService.submit<Result<Boolean>> {
                 val bodyParams = mapOf("storeAdmin" to userId, "storeName" to getStoreName(storeCode))
-                logger.info("bodyParams$bodyParams")
                 storeNotifyService.sendNotifyMessage(
                     templateCode = STORE_MEMBER_ADD_NOTIFY_TEMPLATE + "_$storeType",
                     sender = DEVOPS,
@@ -286,7 +280,6 @@ abstract class StoreMemberServiceImpl : StoreMemberService {
             dslContext.transaction { t ->
                 val context = DSL.using(t)
                 storeMemberDao.delete(context, id)
-                logger.info("deleteMember success")
                 // 删除成员对应的调试项目
                 storeProjectRelDao.deleteUserStoreTestProject(
                     dslContext = context,
@@ -296,7 +289,6 @@ abstract class StoreMemberServiceImpl : StoreMemberService {
                     storeType = storeType
                 )
             }
-            logger.info("executorService.submit<Result<Boolean>>")
             executorService.submit<Result<Boolean>> {
                 val receivers = mutableSetOf(record.username)
                 val bodyParams = mapOf("storeAdmin" to userId, "storeName" to getStoreName(storeCode))

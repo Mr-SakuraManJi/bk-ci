@@ -75,7 +75,6 @@ class TemplateMemberServiceImpl : StoreMemberServiceImpl() {
         ) {
             return MessageCodeUtil.generateResponseDataObject(CommonMessageCode.PERMISSION_DENIED)
         }
-        val storeCode = storeMemberReq.storeCode
         val type = storeMemberReq.type.type.toByte()
         val receivers = mutableSetOf<String>()
         for (item in storeMemberReq.member) {
@@ -84,17 +83,13 @@ class TemplateMemberServiceImpl : StoreMemberServiceImpl() {
             }
             dslContext.transaction { t ->
                 val context = DSL.using(t)
-                logger.info("context, userId, storeCode, item, type, storeType.type.toByte()$context|$userId|$templateCode|$item|$type${storeType.type.toByte()}")
                 storeMemberDao.addStoreMember(context, userId, templateCode, item, type, storeType.type.toByte())
-                logger.info("addTemplateMember success")
             }
             receivers.add(item)
         }
         if (sendNotify) {
-            logger.info("into sendNotify ")
             executorService.submit<Result<Boolean>> {
-                val bodyParams = mapOf("storeAdmin" to userId, "storeName" to getStoreName(storeCode))
-                logger.info("bodyParams$bodyParams")
+                val bodyParams = mapOf("storeAdmin" to userId, "storeName" to getStoreName(templateCode))
                 storeNotifyService.sendNotifyMessage(
                     templateCode = STORE_MEMBER_ADD_NOTIFY_TEMPLATE + "_$storeType",
                     sender = DEVOPS,
