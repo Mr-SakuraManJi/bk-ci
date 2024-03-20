@@ -57,6 +57,7 @@ import com.tencent.devops.store.common.service.StoreMemberService
 import com.tencent.devops.store.common.service.StoreTotalStatisticService
 import com.tencent.devops.store.common.service.StoreUserService
 import com.tencent.devops.store.common.service.action.StoreDecorateFactory
+import com.tencent.devops.store.common.utils.VersionUtils
 import com.tencent.devops.store.common.utils.image.ImageUtil
 import com.tencent.devops.store.constant.StoreMessageCode
 import com.tencent.devops.store.constant.StoreMessageCode.GET_INFO_NO_PERMISSION
@@ -833,11 +834,18 @@ abstract class ImageService @Autowired constructor() {
     ): String {
         logger.info("getImageStatusByCodeAndVersion:Input:($imageCode,$imageVersion)")
         val imageRecord =
-            imageDao.getImage(dslContext, imageCode, imageVersion) ?: throw ErrorCodeException(
-                errorCode = USER_IMAGE_VERSION_NOT_EXIST,
-                defaultMessage = "image is null,imageCode=$imageCode, imageVersion=$imageVersion",
-                params = arrayOf(imageCode, imageVersion)
-            )
+            if (VersionUtils.isLatestVersion(imageVersion)) {
+                imageDao.getReleasedImage(dslContext, imageCode, imageVersion) ?: throw ErrorCodeException(
+                    errorCode = StoreMessageCode.USER_TEMPLATE_IMAGE_IS_INVALID,
+                    params = arrayOf(imageCode)
+                )
+            } else {
+                imageDao.getImage(dslContext, imageCode, imageVersion) ?: throw ErrorCodeException(
+                    errorCode = USER_IMAGE_VERSION_NOT_EXIST,
+                    defaultMessage = "image is null,imageCode=$imageCode, imageVersion=$imageVersion",
+                    params = arrayOf(imageCode, imageVersion)
+                )
+            }
         return ImageStatusEnum.getImageStatus(imageRecord.imageStatus.toInt())
     }
 
