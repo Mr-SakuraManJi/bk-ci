@@ -833,19 +833,10 @@ abstract class ImageService @Autowired constructor() {
         imageVersion: String
     ): String {
         logger.info("getImageStatusByCodeAndVersion:Input:($imageCode,$imageVersion)")
-        val imageRecord =
-            if (VersionUtils.isLatestVersion(imageVersion)) {
-                imageDao.getReleasedImage(dslContext, imageCode, imageVersion) ?: throw ErrorCodeException(
-                    errorCode = StoreMessageCode.USER_TEMPLATE_IMAGE_IS_INVALID,
-                    params = arrayOf(imageCode)
-                )
-            } else {
-                imageDao.getImage(dslContext, imageCode, imageVersion) ?: throw ErrorCodeException(
-                    errorCode = USER_IMAGE_VERSION_NOT_EXIST,
-                    defaultMessage = "image is null,imageCode=$imageCode, imageVersion=$imageVersion",
-                    params = arrayOf(imageCode, imageVersion)
-                )
-            }
+        val imageRecord = imageDao.getReleasedImage(dslContext, imageCode, imageVersion) ?: throw ErrorCodeException(
+            errorCode = StoreMessageCode.USER_TEMPLATE_IMAGE_IS_INVALID,
+            params = arrayOf(imageCode)
+        )
         return ImageStatusEnum.getImageStatus(imageRecord.imageStatus.toInt())
     }
 
